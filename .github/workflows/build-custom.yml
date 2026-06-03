@@ -95,8 +95,8 @@
 
           - name: Install opus dependency
             shell: cmd
-            run: cd /d C:\ && C:\vcpkg\vcpkg.exe install opus:x64-windows-static libvpx:x64-windows-static libyuv:x64-windows-static
-            timeout-minutes: 10
+            run: cd /d C:\ && C:\vcpkg\vcpkg.exe install opus:x64-windows-static libvpx:x64-windows-static libyuv:x64-windows-static aom:x64-windows-static dav1d:x64-windows-static ffmpeg:x64-windows-static
+            timeout-minutes: 30
             
           - name: Build RustDesk (Release)
             shell: cmd
