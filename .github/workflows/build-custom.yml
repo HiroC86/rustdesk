@@ -101,6 +101,7 @@
           - name: Build RustDesk (Release)
             shell: cmd
             run: |
+              call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
               set RENDEZVOUS_SERVER=${{ secrets.RENDEZVOUS_SERVER }}
               set RS_PUB_KEY=${{ secrets.RS_PUB_KEY }}
               set PUBLIC_KEY=${{ secrets.RS_PUB_KEY }}
