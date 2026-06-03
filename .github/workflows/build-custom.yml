@@ -92,7 +92,7 @@
 
           - name: Install opus dependency
             shell: cmd
-            run: set VCPKG_MANIFEST_MODE=OFF && C:\vcpkg\vcpkg.exe install opus:x64-windows-static
+            run: cd /d C:\ && C:\vcpkg\vcpkg.exe install opus:x64-windows-static
             timeout-minutes: 10
             
           - name: Build RustDesk (Release)
