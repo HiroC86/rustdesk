@@ -6,9 +6,9 @@
         branches: [master]
 
     env:
-      RENDEZVOUS_SERVER: "nas.hiroc.wang"
-      RS_PUB_KEY: "quOzvqOncyKjxLaSmgEcpFDSDfKHq2GKbMtZ1wspsSo="
-      PUBLIC_KEY: "quOzvqOncyKjxLaSmgEcpFDSDfKHq2GKbMtZ1wspsSo="
+      RENDEZVOUS_SERVER: ${{ secrets.RS_PUB_KEY }}
+      RS_PUB_KEY: ${{ secrets.RS_PUB_KEY }}
+      PUBLIC_KEY: ${{ secrets.RS_PUB_KEY }}
 
     jobs:
       build-windows:
@@ -87,13 +87,17 @@
                           print(f"  Replaced KEY constant ({n} occurrences)")
                   with open(config_path, "w", encoding="utf-8") as f:
                       f.write(content)
-
+          - name: Install opus dependency
+            shell: cmd
+            run: C:\vcpkg\vcpkg.exe install opus:x64-windows-static
+            timeout-minutes: 10
+            
           - name: Build RustDesk (Release)
             shell: cmd
             run: |
-              set RENDEZVOUS_SERVER=nas.hiroc.wang
-              set RS_PUB_KEY=quOzvqOncyKjxLaSmgEcpFDSDfKHq2GKbMtZ1wspsSo=
-              set PUBLIC_KEY=quOzvqOncyKjxLaSmgEcpFDSDfKHq2GKbMtZ1wspsSo=
+              set RENDEZVOUS_SERVER=${{ secrets.RENDEZVOUS_SERVER }}
+              set RS_PUB_KEY=${{ secrets.RS_PUB_KEY }}
+              set PUBLIC_KEY=${{ secrets.RS_PUB_KEY }}
               set VCPKG_ROOT=C:\vcpkg
               cargo build --release
             timeout-minutes: 120
@@ -101,6 +105,6 @@
           - name: Upload artifact
             uses: actions/upload-artifact@v4
             with:
-              name: rustdesk-nas.hiroc.wang
+              name: RENDEZVOUS_SERVER
               path: target/release/rustdesk.exe
               if-no-files-found: error
