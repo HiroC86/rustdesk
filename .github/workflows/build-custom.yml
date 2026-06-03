@@ -87,9 +87,12 @@
                           print(f"  Replaced KEY constant ({n} occurrences)")
                   with open(config_path, "w", encoding="utf-8") as f:
                       f.write(content)
+
           - name: Install opus dependency
             shell: cmd
-            run: C:\vcpkg\vcpkg.exe install opus:x64-windows-static
+            run: |
+              set VCPKG_MANIFEST_MODE=OFF
+              C:\vcpkg\vcpkg.exe install opus:x64-windows-static
             timeout-minutes: 10
             
           - name: Build RustDesk (Release)
