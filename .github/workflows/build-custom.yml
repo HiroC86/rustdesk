@@ -112,6 +112,6 @@
           - name: Upload artifact
             uses: actions/upload-artifact@v4
             with:
-              name: RENDEZVOUS_SERVER
+              name: rustdesk-private
               path: target/release/rustdesk.exe
               if-no-files-found: error
