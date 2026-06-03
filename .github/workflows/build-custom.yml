@@ -1,0 +1,107 @@
+yaml
+    name: Build Custom RustDesk Client (Windows)
+
+    on:
+      workflow_dispatch:  # 手动触发
+      push:
+        branches: [master]
+
+    env:
+      RENDEZVOUS_SERVER: "nas.hiroc.wang"
+      RS_PUB_KEY: "quOzvqOncyKjxLaSmgEcpFDSDfKHq2GKbMtZ1wspsSo="
+      PUBLIC_KEY: "quOzvqOncyKjxLaSmgEcpFDSDfKHq2GKbMtZ1wspsSo="
+
+    jobs:
+      build-windows:
+        runs-on: windows-latest
+        steps:
+          - name: Checkout
+            uses: actions/checkout@v4
+            with:
+              submodules: recursive
+
+          - name: Install Rust
+            uses: dtolnay/rust-toolchain@stable
+
+          - name: Install dependencies (vcpkg)
+            run: |
+              git clone https://github.com/Microsoft/vcpkg.git C:\vcpkg
+              C:\vcpkg\bootstrap-vcpkg.bat
+            shell: cmd
+
+          - name: Modify source code - embed server
+            shell: python
+            run: |
+              import os, re, glob
+
+              server = os.environ["RENDEZVOUS_SERVER"]
+              key = os.environ["RS_PUB_KEY"]
+              print(f"Embedding server: {server}")
+
+              # Official server patterns to replace
+              official_servers = [
+                  "rs-sy.connectrustdesk.com",
+                  "rs-syd-1.rustdesk.com",
+                  "rs-syd-2.rustdesk.com",
+                  "rs-us.rustdesk.com",
+                  "rs-relay.rustdesk.com",
+                  "connectrustdesk.com",
+              ]
+
+              def patch_file(fpath):
+                  with open(fpath, "r", encoding="utf-8") as f:
+                      content = f.read()
+                  original = content
+                  for s in official_servers:
+                      content = content.replace(s, server)
+                  if content != original:
+                      with open(fpath, "w", encoding="utf-8") as f:
+                          f.write(content)
+                      print(f"  Patched: {os.path.relpath(fpath)}")
+                      return True
+                  return False
+
+              # Scan all Rust source files
+              count = 0
+              for pattern in ["src/*/.rs", "libs/*/.rs", "flutter/*/.rs"]:
+                  for f in glob.glob(pattern, recursive=True):
+                      if patch_file(f):
+                          count += 1
+
+              print(f"Patched {count} files total")
+
+              # Also patch config.rs specifically for KEY constant
+              config_path = "libs/hbb_common/src/config.rs"
+              if os.path.exists(config_path):
+                  with open(config_path, "r", encoding="utf-8") as f:
+                      content = f.read()
+                  # Try to replace the default public key
+                  # Common patterns for the key constant
+                  key_patterns = [
+                      (r'(pub\s+const\s+KEY\s:\s&str\s=\s")[^"]*(")', rf'\g<1>{key}\g<2>'),
+                      (r'(pub\s+const\s+RS_PUB_KEY\s:\s&str\s=\s")[^"]*(")', rf'\g<1>{key}\g<2>'),
+                      (r'(pub\s+const\s+DEFAULT_PUBLIC_KEY\s:\s&str\s=\s")[^"]*(")', rf'\g<1>{key}\g<2>'),
+                  ]
+                  for pat, repl in key_patterns:
+                      content, n = re.subn(pat, repl, content)
+                      if n > 0:
+                          print(f"  Replaced KEY constant ({n} occurrences)")
+                  with open(config_path, "w", encoding="utf-8") as f:
+                      f.write(content)
+
+          - name: Build RustDesk (Release)
+            shell: cmd
+            run: |
+              set RENDEZVOUS_SERVER=nas.hiroc.wang
+              set RS_PUB_KEY=quOzvqOncyKjxLaSmgEcpFDSDfKHq2GKbMtZ1wspsSo=
+              set PUBLIC_KEY=quOzvqOncyKjxLaSmgEcpFDSDfKHq2GKbMtZ1wspsSo=
+              set VCPKG_ROOT=C:\vcpkg
+              cargo build --release
+            timeout-minutes: 120
+
+          - name: Upload artifact
+            uses: actions/upload-artifact@v4
+            with:
+              name: rustdesk-nas.hiroc.wang
+              path: target/release/rustdesk.exe
+              if-no-files-found: error
